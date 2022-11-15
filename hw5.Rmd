@@ -39,10 +39,72 @@ homicide_rawdf = read_csv("./data/homicide-data.csv")
 This dataset overviews demographic and geographic data for homicide victims across various cities in the United States. 
 
 ```{r}
-homicide_rawdf %>% 
+homicide_cleandf = 
+  homicide_rawdf %>% 
   mutate(
     city_state = str_c(city,", ", state)
-  ) %>% 
-  distinct(city_state)
+  )
 ```
 
+
+```{r}
+all_homicides = 
+  homicide_cleandf %>% 
+  group_by(city_state) %>% 
+  summarize(n_obs = n())
+```
+```{r}
+unsolved_homicides = 
+  homicide_cleandf %>% 
+  group_by(city_state) %>% 
+  filter(
+    disposition != "Closed by arrest"
+  ) %>% 
+  summarize(
+    n_obs_unsolved = n()
+  )
+```
+
+```{r}
+homicide_city_state_data = 
+  left_join(all_homicides, unsolved_homicides, by = "city_state")
+```
+```{r}
+
+prop.test(5, 10) %>% 
+  broom::tidy() %>% 
+  select(
+    estimate, conf.low, conf.high
+  )
+
+```
+
+```{r}
+sample = rnorm(30, mean = 0)
+
+test_results = t.test(sample) %>% 
+  broom::tidy()
+```
+```{r}
+sim_t_test = function(true_mean) {
+  sample = rnorm(30, mean = 0)
+  
+  test_results = t.test(sample) %>% 
+  broom::tidy()
+}
+
+expand_grid(
+  true_mean = 0:6, 
+  iter = 1:5
+)
+```
+
+Above, diff sample/diff sample mean but consistent true mean which is the input
+
+Once you have the plot, it's all after you run the simulation 
+group_by + summarize for the true mean & summarize how often the null was rejected
+
+group_by averages 
+
+If all you see are results where p< 0.5 --> publication bias; + low power 
+ You end up seeing results which are different than true 
