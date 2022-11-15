@@ -1,0 +1,48 @@
+---
+title: "HW 5"
+output: github_document
+---
+
+```{r, include = FALSE, messsage=FALSE, warning=FALSE}
+library(tidyverse)
+
+
+knitr::opts_chunk$set(
+	echo = TRUE,
+	warning = FALSE,
+  fig.width = 6,
+  fig.asp = .6,
+  out.width = "90%"
+)
+
+theme_set(theme_minimal() + theme(legend.position = "bottom"))
+
+
+options(
+  ggplot2.continuous.colour = "viridis",
+  ggplot2.continuous.fill = "viridis"
+)
+scale_colour_discrete = scale_colour_viridis_d
+scale_fill_discrete = scale_fill_viridis_d
+
+
+set.seed(1) #sets a seed for reproducibility
+```
+
+## Problem 2
+
+Load data 
+
+```{r, echo = FALSE, warning = FALSE, message = FALSE}
+homicide_rawdf = read_csv("./data/homicide-data.csv")
+```
+This dataset overviews demographic and geographic data for homicide victims across various cities in the United States. 
+
+```{r}
+homicide_rawdf %>% 
+  mutate(
+    city_state = str_c(city,", ", state)
+  ) %>% 
+  distinct(city_state)
+```
+
