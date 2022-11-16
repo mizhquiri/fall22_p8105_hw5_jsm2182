@@ -38,10 +38,31 @@ unsolved_homicides =
 ``` r
 homicide_city_state_data = 
   left_join(all_homicides, unsolved_homicides, by = "city_state")
+
+head(homicide_city_state_data)
 ```
 
+    ## # A tibble: 6 × 3
+    ##   city_state      n_obs n_obs_unsolved
+    ##   <chr>           <int>          <int>
+    ## 1 Albuquerque, NM   378            146
+    ## 2 Atlanta, GA       973            373
+    ## 3 Baltimore, MD    2827           1825
+    ## 4 Baton Rouge, LA   424            196
+    ## 5 Birmingham, AL    800            347
+    ## 6 Boston, MA        614            310
+
+*Baltimore 1 - sample Proportion of Unsolved Homicides to All Homicides*
+
 ``` r
-prop.test(5, 10) %>% 
+  baltimore_homicides = 
+  homicide_city_state_data %>% 
+  filter(
+    city_state == "Baltimore, MD"
+  ) 
+
+
+  prop.test(baltimore_homicides %>% pull(n_obs_unsolved), baltimore_homicides %>% pull(n_obs)) %>% 
   broom::tidy() %>% 
   select(
     estimate, conf.low, conf.high
@@ -51,7 +72,53 @@ prop.test(5, 10) %>%
     ## # A tibble: 1 × 3
     ##   estimate conf.low conf.high
     ##      <dbl>    <dbl>     <dbl>
-    ## 1      0.5    0.237     0.763
+    ## 1    0.646    0.628     0.663
+
+``` r
+  prop.test(baltimore_homicides %>% pull(n_obs_unsolved), baltimore_homicides %>% pull(n_obs)) %>% 
+  broom::tidy() %>% 
+  select(
+    estimate, conf.low, conf.high
+  )
+```
+
+    ## # A tibble: 1 × 3
+    ##   estimate conf.low conf.high
+    ##      <dbl>    <dbl>     <dbl>
+    ## 1    0.646    0.628     0.663
+
+We are 95% confident that the true proportion unsolved homicide rates in
+Baltimore is between 0.627 and 0.663.
+
+1.  Create a function that computes estimate, conf.low, conf.high
+
+%\>% version
+
+``` r
+prop_test_output = function(df) {
+  
+
+  prop.test(x = df %>% pull(n_obs_unsolved), n = df %>% pull(n_obs))
+
+}
+```
+
+2.  map the data
+
+``` r
+homicide_city_state_data %>% 
+  rowwise(city_state) %>% 
+  mutate(
+    proportion_test = purrr::map2(x = homicide_city_state_data %>% pull(n_obs_unsolved), y = homicide_city_state_data %>% pull(n_obs), ~prop.test(x = .x, n = .y))
+    ) 
+```
+
+``` r
+homicide_city_state_data %>% 
+  mutate(
+    prop = map2(.x = n_obs_unsolved, .y = n_obs, ~prop_test_output(x = .x, n = .y))
+  )
+```
 
 ``` r
 sample = rnorm(30, mean = 0)
@@ -99,3 +166,23 @@ group_by averages
 
 If all you see are results where p\< 0.5 –\> publication bias; + low
 power You end up seeing results which are different than true
+
+## Problem 3
+
+``` r
+sample = rnorm(n = 30, mean = 0, sd = 5)
+```
+
+``` r
+sim_results_df = 
+  expand_grid(
+    sample_size = c(30, 60, 120, 240),
+    true_sd = c(6, 3),
+    iter = 1:1000
+  ) %>% 
+  mutate(
+    estimate_df = 
+      map2(.x = sample_size, .y = true_sd, ~sim_mean_sd(n = .x, sigma = .y))
+  ) %>% 
+  unnest(estimate_df)
+```

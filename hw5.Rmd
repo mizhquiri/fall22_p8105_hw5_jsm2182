@@ -68,16 +68,80 @@ unsolved_homicides =
 ```{r}
 homicide_city_state_data = 
   left_join(all_homicides, unsolved_homicides, by = "city_state")
+
+head(homicide_city_state_data)
 ```
+
+
+
+_Baltimore 1 - sample Proportion of Unsolved Homicides to All Homicides_
 ```{r}
 
-prop.test(5, 10) %>% 
+  baltimore_homicides = 
+  homicide_city_state_data %>% 
+  filter(
+    city_state == "Baltimore, MD"
+  ) 
+
+
+  prop.test(baltimore_homicides %>% pull(n_obs_unsolved), baltimore_homicides %>% pull(n_obs)) %>% 
   broom::tidy() %>% 
   select(
     estimate, conf.low, conf.high
   )
 
 ```
+
+
+```{r}
+  prop.test(baltimore_homicides %>% pull(n_obs_unsolved), baltimore_homicides %>% pull(n_obs)) %>% 
+  broom::tidy() %>% 
+  select(
+    estimate, conf.low, conf.high
+  )
+
+```
+
+
+We are 95% confident that the true proportion unsolved homicide rates in Baltimore is between 0.627 and 0.663.
+
+1. Create a function that computes estimate, conf.low, conf.high
+
+%>%  version
+```{r}
+
+prop_test_output = function(df) {
+  
+
+  prop.test(x = df %>% pull(n_obs_unsolved), n = df %>% pull(n_obs))
+
+}
+
+
+```
+
+2. map the data
+
+
+```{r, eval = FALSE}
+
+homicide_city_state_data %>% 
+  rowwise(city_state) %>% 
+  mutate(
+    proportion_test = purrr::map2(x = homicide_city_state_data %>% pull(n_obs_unsolved), y = homicide_city_state_data %>% pull(n_obs), ~prop.test(x = .x, n = .y))
+    ) 
+
+
+```
+
+
+```{r, eval = FALSE}
+homicide_city_state_data %>% 
+  mutate(
+    prop = map2(.x = n_obs_unsolved, .y = n_obs, ~prop_test_output(x = .x, n = .y))
+  )
+```
+
 
 ```{r}
 sample = rnorm(30, mean = 0)
@@ -108,3 +172,32 @@ group_by averages
 
 If all you see are results where p< 0.5 --> publication bias; + low power 
  You end up seeing results which are different than true 
+ 
+ 
+## Problem 3
+
+```{r}
+sample = rnorm(n = 30, mean = 0, sd = 5)
+
+```
+
+
+```{r, eval = FALSE}
+sim_results_df = 
+  expand_grid(
+    sample_size = c(30, 60, 120, 240),
+    true_sd = c(6, 3),
+    iter = 1:1000
+  ) %>% 
+  mutate(
+    estimate_df = 
+      map2(.x = sample_size, .y = true_sd, ~sim_mean_sd(n = .x, sigma = .y))
+  ) %>% 
+  unnest(estimate_df)
+
+```
+
+ 
+ 
+ 
+ 
