@@ -110,10 +110,15 @@ We are 95% confident that the true proportion unsolved homicide rates in Baltimo
 %>%  version
 ```{r}
 
-prop_test_output = function(df) {
+prop_output = function(df) {
   
-
-  prop.test(x = df %>% pull(n_obs_unsolved), n = df %>% pull(n_obs))
+data = df
+  prop.test(x = df %>% pull(n_obs_unsolved), n = df %>% pull(n_obs)) %>% 
+    broom::tidy() %>% 
+    select(
+      estimate, conf.low, conf.high
+    )
+  
 
 }
 
@@ -122,13 +127,23 @@ prop_test_output = function(df) {
 
 2. map the data
 
+VERSION 1
 
+Using prop custom function
+```{r, eval = FALSE}
+map(homicide_city_state_data, prop_output)
+```
+
+```{r, eval = FALSE}
+map2(x = homicide_city_state_data %>% n_obs_unsolved, y =  homicide_city_state_data %>% n_obs, ~prop_output(homicide_city_state_data))
+```
+
+Using basic prop.test
 ```{r, eval = FALSE}
 
 homicide_city_state_data %>% 
-  rowwise(city_state) %>% 
   mutate(
-    proportion_test = purrr::map2(x = homicide_city_state_data %>% pull(n_obs_unsolved), y = homicide_city_state_data %>% pull(n_obs), ~prop.test(x = .x, n = .y))
+    proportion_test = purrr::map2( x = homicide_city_state_data %>% pull(n_obs_unsolved), y = homicide_city_state_data %>% pull(n_obs), .f = ~prop.test(x = .x, n = .y))
     ) 
 
 
@@ -143,12 +158,7 @@ homicide_city_state_data %>%
 ```
 
 
-```{r}
-sample = rnorm(30, mean = 0)
 
-test_results = t.test(sample) %>% 
-  broom::tidy()
-```
 ```{r}
 sim_t_test = function(true_mean) {
   sample = rnorm(30, mean = 0)
@@ -176,10 +186,38 @@ If all you see are results where p< 0.5 --> publication bias; + low power
  
 ## Problem 3
 
+
+ VERSION 1: looks up to date
 ```{r}
-sample = rnorm(n = 30, mean = 0, sd = 5)
+
+sim_mean_sd = function(mu) {
+
+   x = rnorm(n = 30, mean = mu, sd = 5) 
+   
+  output = t.test(x) %>% broom::tidy()
+  
+ }
+
+a = sim_mean_sd(0)
+a
+
+
+sim_results_df = 
+  expand_grid(
+    iter = 1:10,
+    mean = c(1,2,3,4,5,6)) %>% 
+  mutate(
+    estimate_df = 
+      map(mean, sim_mean_sd)
+  ) %>% unnest(estimate_df) %>% 
+  select(p.value, estimate)
+
+sim_results_df
+
 
 ```
+
+
 
 
 ```{r, eval = FALSE}

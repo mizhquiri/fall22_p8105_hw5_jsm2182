@@ -95,21 +95,39 @@ Baltimore is between 0.627 and 0.663.
 %\>% version
 
 ``` r
-prop_test_output = function(df) {
+prop_output = function(df) {
   
-
-  prop.test(x = df %>% pull(n_obs_unsolved), n = df %>% pull(n_obs))
+data = df
+  prop.test(x = df %>% pull(n_obs_unsolved), n = df %>% pull(n_obs)) %>% 
+    broom::tidy() %>% 
+    select(
+      estimate, conf.low, conf.high
+    )
+  
 
 }
 ```
 
 2.  map the data
 
+VERSION 1
+
+Using prop custom function
+
+``` r
+map(homicide_city_state_data, prop_output)
+```
+
+``` r
+map2(x = homicide_city_state_data %>% n_obs_unsolved, y =  homicide_city_state_data %>% n_obs, ~prop_output(homicide_city_state_data))
+```
+
+Using basic prop.test
+
 ``` r
 homicide_city_state_data %>% 
-  rowwise(city_state) %>% 
   mutate(
-    proportion_test = purrr::map2(x = homicide_city_state_data %>% pull(n_obs_unsolved), y = homicide_city_state_data %>% pull(n_obs), ~prop.test(x = .x, n = .y))
+    proportion_test = purrr::map2( x = homicide_city_state_data %>% pull(n_obs_unsolved), y = homicide_city_state_data %>% pull(n_obs), .f = ~prop.test(x = .x, n = .y))
     ) 
 ```
 
@@ -118,13 +136,6 @@ homicide_city_state_data %>%
   mutate(
     prop = map2(.x = n_obs_unsolved, .y = n_obs, ~prop_test_output(x = .x, n = .y))
   )
-```
-
-``` r
-sample = rnorm(30, mean = 0)
-
-test_results = t.test(sample) %>% 
-  broom::tidy()
 ```
 
 ``` r
@@ -169,9 +180,55 @@ power You end up seeing results which are different than true
 
 ## Problem 3
 
+VERSION 1: looks up to date
+
 ``` r
-sample = rnorm(n = 30, mean = 0, sd = 5)
+sim_mean_sd = function(mu) {
+
+   x = rnorm(n = 30, mean = mu, sd = 5) 
+   
+  output = t.test(x) %>% broom::tidy()
+  
+ }
+
+a = sim_mean_sd(0)
+a
 ```
+
+    ## # A tibble: 1 × 8
+    ##   estimate statistic p.value parameter conf.low conf.high method         alter…¹
+    ##      <dbl>     <dbl>   <dbl>     <dbl>    <dbl>     <dbl> <chr>          <chr>  
+    ## 1    0.412     0.489   0.629        29    -1.31      2.14 One Sample t-… two.si…
+    ## # … with abbreviated variable name ¹​alternative
+
+``` r
+sim_results_df = 
+  expand_grid(
+    iter = 1:10,
+    mean = c(1,2,3,4,5,6)) %>% 
+  mutate(
+    estimate_df = 
+      map(mean, sim_mean_sd)
+  ) %>% unnest(estimate_df) %>% 
+  select(p.value, estimate)
+
+sim_results_df
+```
+
+    ## # A tibble: 60 × 2
+    ##        p.value estimate
+    ##          <dbl>    <dbl>
+    ##  1 0.0294         1.66 
+    ##  2 0.00687        2.55 
+    ##  3 0.000124       3.57 
+    ##  4 0.00924        2.35 
+    ##  5 0.000000508    6.19 
+    ##  6 0.000000540    6.33 
+    ##  7 0.839         -0.190
+    ##  8 0.0184         2.12 
+    ##  9 0.000493       3.68 
+    ## 10 0.00000216     5.09 
+    ## # … with 50 more rows
 
 ``` r
 sim_results_df = 
