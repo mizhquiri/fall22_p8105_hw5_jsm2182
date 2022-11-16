@@ -90,53 +90,173 @@ head(homicide_city_state_data)
 We are 95% confident that the true proportion unsolved homicide rates in
 Baltimore is between 0.627 and 0.663.
 
+``` r
+prop_output = function(df) {
+  
+ prop_test = 
+  prop.test(x = df %>% pull(n_obs_unsolved), n = df %>% pull(n_obs))   
+
+  
+return(prop_test)
+
+}
+```
+
+``` r
+prop_output(homicide_city_state_data)
+```
+
+    ## 
+    ##  50-sample test for equality of proportions without continuity
+    ##  correction
+    ## 
+    ## data:  df %>% pull(n_obs_unsolved) out of df %>% pull(n_obs)
+    ## X-squared = 2856.1, df = 49, p-value < 2.2e-16
+    ## alternative hypothesis: two.sided
+    ## sample estimates:
+    ##    prop 1    prop 2    prop 3    prop 4    prop 5    prop 6    prop 7    prop 8 
+    ## 0.3862434 0.3833505 0.6455607 0.4622642 0.4337500 0.5048860 0.6122841 0.2998544 
+    ##    prop 9   prop 10   prop 11   prop 12   prop 13   prop 14   prop 15   prop 16 
+    ## 0.7358627 0.4452450 0.5304428 0.4811742 0.5416667 0.5883287 0.3659420 0.4644809 
+    ##   prop 17   prop 18   prop 19   prop 20   prop 21   prop 22   prop 23   prop 24 
+    ## 0.3470226 0.5074779 0.4493192 0.5111301 0.4084034 0.4141926 0.4126984 0.4900310 
+    ##   prop 25   prop 26   prop 27   prop 28   prop 29   prop 30   prop 31   prop 32 
+    ## 0.4531250 0.3190225 0.6048387 0.3614350 0.5109290 0.3624511 0.6485356 0.3875598 
+    ##   prop 33   prop 34   prop 35   prop 36   prop 37   prop 38   prop 39   prop 40 
+    ## 0.5364308 0.4851190 0.4132029 0.4478103 0.5514223 0.5340729 0.2634033 0.3696809 
+    ##   prop 41   prop 42   prop 43   prop 44   prop 45   prop 46   prop 47   prop 48 
+    ## 0.4285714 0.6181818 0.3796095 0.5067873 0.4674797 0.5396541 0.5990991 0.4567308 
+    ##   prop 50   prop 51 
+    ## 0.3310463 0.4379182
+
+``` r
+homicide_city_state_data %>%
+  prop_output() %>% 
+  broom::tidy()
+```
+
+    ## # A tibble: 1 × 55
+    ##   estimate1 estimate2 estimate3 estima…¹ estim…² estim…³ estim…⁴ estim…⁵ estim…⁶
+    ##       <dbl>     <dbl>     <dbl>    <dbl>   <dbl>   <dbl>   <dbl>   <dbl>   <dbl>
+    ## 1     0.386     0.383     0.646    0.462   0.434   0.505   0.612   0.300   0.736
+    ## # … with 46 more variables: estimate10 <dbl>, estimate11 <dbl>,
+    ## #   estimate12 <dbl>, estimate13 <dbl>, estimate14 <dbl>, estimate15 <dbl>,
+    ## #   estimate16 <dbl>, estimate17 <dbl>, estimate18 <dbl>, estimate19 <dbl>,
+    ## #   estimate20 <dbl>, estimate21 <dbl>, estimate22 <dbl>, estimate23 <dbl>,
+    ## #   estimate24 <dbl>, estimate25 <dbl>, estimate26 <dbl>, estimate27 <dbl>,
+    ## #   estimate28 <dbl>, estimate29 <dbl>, estimate30 <dbl>, estimate31 <dbl>,
+    ## #   estimate32 <dbl>, estimate33 <dbl>, estimate34 <dbl>, estimate35 <dbl>, …
+
 1.  Create a function that computes estimate, conf.low, conf.high
 
 %\>% version
 
 ``` r
-prop_output = function(df) {
+prop_output = function(x, n) {
   
-data = df
-  prop.test(x = df %>% pull(n_obs_unsolved), n = df %>% pull(n_obs)) %>% 
+prop_df = 
+  prop.test(x, n) %>%  
     broom::tidy() %>% 
     select(
       estimate, conf.low, conf.high
     )
   
+return(prop_df)
 
 }
+```
+
+Finally works
+
+``` r
+prop_output(5,10)
+```
+
+    ## # A tibble: 1 × 3
+    ##   estimate conf.low conf.high
+    ##      <dbl>    <dbl>     <dbl>
+    ## 1      0.5    0.237     0.763
+
+Try withouth broom::tidy
+
+``` r
+prop_nobroom = function(x, n) {
+  
+prop_df = 
+  prop.test(x, n)
+  
+return(prop_df)
+
+}
+```
+
+``` r
+prop_nobroom(5, 10)
+```
+
+    ## 
+    ##  1-sample proportions test without continuity correction
+    ## 
+    ## data:  x out of n, null probability 0.5
+    ## X-squared = 0, df = 1, p-value = 1
+    ## alternative hypothesis: true p is not equal to 0.5
+    ## 95 percent confidence interval:
+    ##  0.2365931 0.7634069
+    ## sample estimates:
+    ##   p 
+    ## 0.5
+
+Not in a tidy way
+
+``` r
+homicide_city_state_data
+
+
+map2(x = homicide_city_state_data %>% pull(n_obs_unsolved), y = homicide_city_state_data %>% pull(n_obs), ~prop_nobroom(x = .x, n = .y))
+```
+
+Error: Not enough data
+
+``` r
+homicide_city_state_data
+
+
+map2( .x = homicide_city_state_data %>% pull(n_obs_unsolved), .y = homicide_city_state_data %>% pull(n_obs), ~prop.test(x = .x, n = .y))
 ```
 
 2.  map the data
 
 VERSION 1
 
-Using prop custom function
-
-``` r
-map(homicide_city_state_data, prop_output)
-```
-
-``` r
-map2(x = homicide_city_state_data %>% n_obs_unsolved, y =  homicide_city_state_data %>% n_obs, ~prop_output(homicide_city_state_data))
-```
-
 Using basic prop.test
 
 ``` r
 homicide_city_state_data %>% 
   mutate(
-    proportion_test = purrr::map2( x = homicide_city_state_data %>% pull(n_obs_unsolved), y = homicide_city_state_data %>% pull(n_obs), .f = ~prop.test(x = .x, n = .y))
-    ) 
+    proportion_test = map2(n_obs_unsolved, n_obs,prop.test)) 
 ```
+
+Using my custom code WITH BROOM
 
 ``` r
 homicide_city_state_data %>% 
   mutate(
-    prop = map2(.x = n_obs_unsolved, .y = n_obs, ~prop_test_output(x = .x, n = .y))
-  )
+    prop = 
+      map2(.x = n_obs_unsolved, .y = n_obs, ~prop_output(x = .x, n = .y))
+  ) 
 ```
+
+Using my native code WITH NO BROOM
+
+``` r
+homicide_city_state_data %>% 
+  mutate(
+    prop = 
+      map2(.x = n_obs_unsolved, .y = n_obs, ~prop_nobroom(x = .x, n = .y))
+  ) 
+```
+
+Using my custom code with no broom + nest data
 
 ``` r
 sim_t_test = function(true_mean) {
@@ -229,17 +349,3 @@ sim_results_df
     ##  9 0.000493       3.68 
     ## 10 0.00000216     5.09 
     ## # … with 50 more rows
-
-``` r
-sim_results_df = 
-  expand_grid(
-    sample_size = c(30, 60, 120, 240),
-    true_sd = c(6, 3),
-    iter = 1:1000
-  ) %>% 
-  mutate(
-    estimate_df = 
-      map2(.x = sample_size, .y = true_sd, ~sim_mean_sd(n = .x, sigma = .y))
-  ) %>% 
-  unnest(estimate_df)
-```

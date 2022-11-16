@@ -105,57 +105,139 @@ _Baltimore 1 - sample Proportion of Unsolved Homicides to All Homicides_
 
 We are 95% confident that the true proportion unsolved homicide rates in Baltimore is between 0.627 and 0.663.
 
+
+```{r}
+prop_output = function(df) {
+  
+ prop_test = 
+  prop.test(x = df %>% pull(n_obs_unsolved), n = df %>% pull(n_obs))   
+
+  
+return(prop_test)
+
+}
+```
+
+
+```{r}
+prop_output(homicide_city_state_data)
+```
+
+```{r}
+homicide_city_state_data %>%
+  prop_output() %>% 
+  broom::tidy()
+  
+```
+
+
 1. Create a function that computes estimate, conf.low, conf.high
 
 %>%  version
 ```{r}
 
-prop_output = function(df) {
+prop_output = function(x, n) {
   
-data = df
-  prop.test(x = df %>% pull(n_obs_unsolved), n = df %>% pull(n_obs)) %>% 
+prop_df = 
+  prop.test(x, n) %>%  
     broom::tidy() %>% 
     select(
       estimate, conf.low, conf.high
     )
   
+return(prop_df)
 
 }
 
 
 ```
 
+Finally works
+```{r}
+prop_output(5,10)
+```
+
+Try withouth broom::tidy
+
+```{r}
+prop_nobroom = function(x, n) {
+  
+prop_df = 
+  prop.test(x, n)
+  
+return(prop_df)
+
+}
+```
+
+
+```{r}
+prop_nobroom(5, 10)
+```
+Not in a tidy way
+```{r, eval = FALSE}
+
+homicide_city_state_data
+
+
+map2(x = homicide_city_state_data %>% pull(n_obs_unsolved), y = homicide_city_state_data %>% pull(n_obs), ~prop_nobroom(x = .x, n = .y))
+
+```
+Error: Not enough data
+
+
+
+```{r, eval = FALSE}
+homicide_city_state_data
+
+
+map2( .x = homicide_city_state_data %>% pull(n_obs_unsolved), .y = homicide_city_state_data %>% pull(n_obs), ~prop.test(x = .x, n = .y))
+```
+
+
 2. map the data
 
 VERSION 1
 
-Using prop custom function
-```{r, eval = FALSE}
-map(homicide_city_state_data, prop_output)
-```
 
-```{r, eval = FALSE}
-map2(x = homicide_city_state_data %>% n_obs_unsolved, y =  homicide_city_state_data %>% n_obs, ~prop_output(homicide_city_state_data))
-```
 
 Using basic prop.test
 ```{r, eval = FALSE}
 
 homicide_city_state_data %>% 
   mutate(
-    proportion_test = purrr::map2( x = homicide_city_state_data %>% pull(n_obs_unsolved), y = homicide_city_state_data %>% pull(n_obs), .f = ~prop.test(x = .x, n = .y))
-    ) 
+    proportion_test = map2(n_obs_unsolved, n_obs,prop.test)) 
 
 
 ```
+Using my custom code WITH BROOM
+
+```{r, eval = FALSE}
+homicide_city_state_data %>% 
+  mutate(
+    prop = 
+      map2(.x = n_obs_unsolved, .y = n_obs, ~prop_output(x = .x, n = .y))
+  ) 
+```
+
+
+
+Using my native code WITH NO BROOM
+
 
 
 ```{r, eval = FALSE}
 homicide_city_state_data %>% 
   mutate(
-    prop = map2(.x = n_obs_unsolved, .y = n_obs, ~prop_test_output(x = .x, n = .y))
-  )
+    prop = 
+      map2(.x = n_obs_unsolved, .y = n_obs, ~prop_nobroom(x = .x, n = .y))
+  ) 
 ```
+
+
+Using my custom code with no broom + nest data 
+
+
 
 
 
@@ -219,23 +301,6 @@ sim_results_df
 
 
 
-
-```{r, eval = FALSE}
-sim_results_df = 
-  expand_grid(
-    sample_size = c(30, 60, 120, 240),
-    true_sd = c(6, 3),
-    iter = 1:1000
-  ) %>% 
-  mutate(
-    estimate_df = 
-      map2(.x = sample_size, .y = true_sd, ~sim_mean_sd(n = .x, sigma = .y))
-  ) %>% 
-  unnest(estimate_df)
-
-```
-
- 
  
  
  
