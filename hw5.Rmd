@@ -31,25 +31,33 @@ scale_fill_discrete = scale_fill_viridis_d
 set.seed(1) #sets a seed for reproducibility
 ```
 
+
+## Problem 1 
+
 ## Problem 2
 
-Load data 
+
 
 ```{r, echo = FALSE, warning = FALSE, message = FALSE}
 homicide_rawdf = read_csv("./data/homicide-data.csv")
 ```
-This dataset overviews demographic and geographic data for homicide victims across various cities in the United States. 
+_Description of raw data_ This dataset overviews demographic and geographic data for homicide victims across various cities in the United States. It has `n row(homicide_rawdf)` rows and `ncol(homicide_rawdf)` columns.
 
-```{r}
+Steps: 
+
+1. Cleaned the data
+
+```{r, echo = FALSE}
 homicide_cleandf = 
   homicide_rawdf %>% 
   mutate(
     city_state = str_c(city,", ", state)
-  )
+  ) %>% 
+  relocate(city_state)
 ```
 
-
-```{r}
+2. Calculated the # of all homicides (n) and unsolved homicides (x)
+```{r, echo = FALSE}
 all_homicides = 
   homicide_cleandf %>% 
   group_by(city_state) %>% 
@@ -67,11 +75,16 @@ unsolved_homicides =
   )
 ```
 
+3. Added these #s to the dataset 
 ```{r}
-homicide_city_state_data = 
+homicide_city_state_data_pre = 
   left_join(all_homicides, unsolved_homicides, by = "city_state")
 
+homicide_city_state_data = 
+  left_join(homicide_cleandf, homicide_city_state_data_pre, by = "city_state")
+
 head(homicide_city_state_data)
+
 ```
 
 
@@ -81,6 +94,8 @@ _Baltimore 1 - sample Proportion of Unsolved Homicides to All Homicides_
 
   baltimore_homicides = 
   homicide_city_state_data %>% 
+  group_by(city_state, n_obs, n_obs_unsolved) %>% 
+  summarize() %>% 
   filter(
     city_state == "Baltimore, MD"
   ) 
@@ -90,17 +105,8 @@ _Baltimore 1 - sample Proportion of Unsolved Homicides to All Homicides_
   broom::tidy() %>% 
   select(
     estimate, conf.low, conf.high
-  )
-
-```
-
-
-```{r}
-  prop.test(baltimore_homicides %>% pull(n_obs_unsolved), baltimore_homicides %>% pull(n_obs)) %>% 
-  broom::tidy() %>% 
-  select(
-    estimate, conf.low, conf.high
-  )
+  ) %>% 
+    knitr::kable(2, caption = "Baltimore, MD 1 - Sample Proportion of Unsolved Homicides")
 
 ```
 
@@ -108,11 +114,25 @@ _Baltimore 1 - sample Proportion of Unsolved Homicides to All Homicides_
 We are 95% confident that the true proportion unsolved homicide rates in Baltimore is between 0.627 and 0.663.
 
 
+```{r, echo = FALSE}
+
+  results = homicide_city_state_data %>% 
+    group_by(city_state, n_obs_unsolved, n_obs) %>% 
+    summarize()
+
+head(results)
+```
+```
+
+_Created a function that runs prop.test given certain inputs
 ```{r}
 prop_output = function(df) {
   
+results = df %>% 
+    group_by(city_state, n_obs_unsolved, n_obs)
+  
  prop_test = 
-  prop.test(x = df %>% pull(n_obs_unsolved), n = df %>% pull(n_obs))   
+  prop.test(x = results %>% pull(n_obs_unsolved), n = results %>% pull(n_obs))   
 
   
 return(prop_test)
@@ -120,163 +140,35 @@ return(prop_test)
 }
 ```
 
+_Applied in a tidy way_
 
-```{r}
-prop_output(homicide_city_state_data)
-```
-
-```{r}
-homicide_city_state_data %>%
-  prop_output() %>% 
-  broom::tidy()
-  
-```
-
-
-1. Create a function that computes estimate, conf.low, conf.high
-
-%>%  version
-```{r}
-
-prop_output = function(x, n) {
-  
-prop_df = 
-  prop.test(x, n) %>%  
-    broom::tidy() %>% 
-    select(
-      estimate, conf.low, conf.high
-    )
-  
-return(prop_df)
-
-}
-
-
-```
-
-Finally works
-```{r}
-prop_output(5,10)
-```
-
-Try withouth broom::tidy
-
-```{r}
-prop_nobroom = function(x, n) {
-  
-prop_df = 
-  prop.test(x, n)
-  
-return(prop_df)
-
-}
-```
-
-
-```{r}
-prop_nobroom(5, 10)
-```
-Not in a tidy way
-```{r, eval = FALSE}
-
-homicide_city_state_data
-
-
-map2(x = homicide_city_state_data %>% pull(n_obs_unsolved), y = homicide_city_state_data %>% pull(n_obs), ~prop_nobroom(x = .x, n = .y))
-
-```
-Error: Not enough data
-
-
+- NOTE: I had an error and could not resolve it. 
 
 ```{r, eval = FALSE}
-homicide_city_state_data
-
-
-map2( .x = homicide_city_state_data %>% pull(n_obs_unsolved), .y = homicide_city_state_data %>% pull(n_obs), ~prop.test(x = .x, n = .y))
-```
-
-
-2. map the data
-
-VERSION 1
-
-
-
-Using basic prop.test
-```{r, eval = FALSE}
-
-homicide_city_state_data %>% 
+data_final = 
+  homicide_city_state_data %>% 
+  nest(data = n_obs:n_obs_unsolved) %>% 
   mutate(
-    proportion_test = map2(n_obs_unsolved, n_obs,prop.test)) 
-
-
-```
-Using my custom code WITH BROOM
-
-```{r, eval = FALSE}
-homicide_city_state_data %>% 
-  mutate(
-    prop = 
-      map2(.x = n_obs_unsolved, .y = n_obs, ~prop_output(x = .x, n = .y))
-  ) 
+    results = map(data, prop_output),
+    results_tidy = map(results, broom::tidy)) %>% 
+  select(city_state, tidy_results) %>% 
+  unnest(results_tidy) %>% 
+  select(city_state, estimate, conf.low, conf.high)
 ```
 
 
+_Subsequent steps I would have taken_
 
-Using my native code WITH NO BROOM
-
-
-
-```{r, eval = FALSE}
-homicide_city_state_data %>% 
-  mutate(
-    prop = 
-      map2(.x = n_obs_unsolved, .y = n_obs, ~prop_nobroom(x = .x, n = .y))
-  ) 
-```
+- I might have explored binding rows and doing everything one by one for each city_state
+- I would have fct_releveled/reordered the city_state by the estimates to organize them
+- I would have used ggplot + geom_error bar setting the ymin as the LL and the ymax as the UL. I would have explored line vs scatter plot. 
 
 
-Using my custom code with no broom + nest data 
-
-
-
-
-
-```{r}
-sim_t_test = function(true_mean) {
-  sample = rnorm(30, mean = 0)
-  
-  test_results = t.test(sample) %>% 
-  broom::tidy()
-}
-
-expand_grid(
-  true_mean = 0:6, 
-  iter = 1:5
-)
-```
-
-Above, diff sample/diff sample mean but consistent true mean which is the input
-
-Once you have the plot, it's all after you run the simulation 
-group_by + summarize for the true mean & summarize how often the null was rejected
-
-group_by averages 
-
-If all you see are results where p< 0.5 --> publication bias; + low power 
- You end up seeing results which are different than true 
-
-## Problem 2
- 
-```{r}
-
-```
 
 ## Problem 3
 
 
- VERSION 1: looks up to date
+1. First set the following design elements, Set μ=0. Generate 5000 datasets from the modelor each dataset, save μ^ and the p-value arising from a test of H:μ=0 using α=0.05. Hint: to obtain the estimate and p-value, use broom::tidy to clean the output of t.test.
 ```{r}
 
 sim_mean_sd = function(mu) {
@@ -287,8 +179,7 @@ sim_mean_sd = function(mu) {
   
  }
 
-a = sim_mean_sd(0)
-a
+
 
 #mapping into my input called mean which is named in the dataset. In the function, i have a variable called mu. I am telling the function that I have a variable that is equal to the object mean. 
 
@@ -308,6 +199,11 @@ sim_results_zero_df
 
 
 
+```
+
+
+Repeat the above for μ={1,2,3,4,5,6},
+```{r}
 sim_results_df = 
   expand_grid(
     iter = 1:10,
@@ -320,9 +216,7 @@ sim_results_df =
 
 sim_results_df
 
-
 ```
-
 
 `sim_results_df` is the dataset I will work on. 
 
@@ -361,6 +255,11 @@ sim_decision =
 
 sim_decision
 ```
+
+Make a plot showing the proportion of times the null was rejected (the power of the test) on the y axis and the true value of μ on the x axis. Describe the association between effect size and power.
+
+ANS: The larger the effect size the larger the power. 
+
 ```{r}
 sim_decision %>% 
   ggplot(aes(x = mean, y = prop)) +
@@ -373,6 +272,10 @@ sim_decision %>%
 ```
 
 Make a plot showing the average estimate of μ^ on the y axis and the true value of μ on the x axis. Make a second plot (or overlay on the first) the average estimate of μ^ only in samples for which the null was rejected on the y axis and the true value of μ on the x axis. Is the sample average of μ^ across tests for which the null is rejected approximately equal to the true value of μ? Why or why not
+
+
+No, the sample average of μ^ across tests for which the null is rejected is NOT approximately equal to the true value of μ. 
+
 ```{r}
  plot_compare_means = 
   sim_results_df %>%

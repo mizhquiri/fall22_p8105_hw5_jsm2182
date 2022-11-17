@@ -1,27 +1,20 @@
 HW 5
 ================
 
+## Problem 1
+
 ## Problem 2
 
-Load data
+*Description of raw data* This dataset overviews demographic and
+geographic data for homicide victims across various cities in the United
+States. It has `n row(homicide_rawdf)` rows and `ncol(homicide_rawdf)`
+columns.
 
-This dataset overviews demographic and geographic data for homicide
-victims across various cities in the United States.
+Steps:
 
-``` r
-homicide_cleandf = 
-  homicide_rawdf %>% 
-  mutate(
-    city_state = str_c(city,", ", state)
-  )
-```
+1.  Cleaned the data
 
-``` r
-all_homicides = 
-  homicide_cleandf %>% 
-  group_by(city_state) %>% 
-  summarize(n_obs = n())
-```
+2.  Calculated the \# of all homicides (n) and unsolved homicides (x)
 
 ``` r
 unsolved_homicides = 
@@ -35,274 +28,127 @@ unsolved_homicides =
   )
 ```
 
+3.  Added these \#s to the dataset
+
 ``` r
-homicide_city_state_data = 
+homicide_city_state_data_pre = 
   left_join(all_homicides, unsolved_homicides, by = "city_state")
+
+homicide_city_state_data = 
+  left_join(homicide_cleandf, homicide_city_state_data_pre, by = "city_state")
 
 head(homicide_city_state_data)
 ```
 
-    ## # A tibble: 6 × 3
-    ##   city_state      n_obs n_obs_unsolved
-    ##   <chr>           <int>          <int>
-    ## 1 Albuquerque, NM   378            146
-    ## 2 Atlanta, GA       973            373
-    ## 3 Baltimore, MD    2827           1825
-    ## 4 Baton Rouge, LA   424            196
-    ## 5 Birmingham, AL    800            347
-    ## 6 Boston, MA        614            310
+    ## # A tibble: 6 × 15
+    ##   city_state   uid   repor…¹ victi…² victi…³ victi…⁴ victi…⁵ victi…⁶ city  state
+    ##   <chr>        <chr>   <dbl> <chr>   <chr>   <chr>   <chr>   <chr>   <chr> <chr>
+    ## 1 Albuquerque… Alb-…  2.01e7 GARCIA  JUAN    Hispan… 78      Male    Albu… NM   
+    ## 2 Albuquerque… Alb-…  2.01e7 MONTOYA CAMERON Hispan… 17      Male    Albu… NM   
+    ## 3 Albuquerque… Alb-…  2.01e7 SATTER… VIVIANA White   15      Female  Albu… NM   
+    ## 4 Albuquerque… Alb-…  2.01e7 MENDIO… CARLOS  Hispan… 32      Male    Albu… NM   
+    ## 5 Albuquerque… Alb-…  2.01e7 MULA    VIVIAN  White   72      Female  Albu… NM   
+    ## 6 Albuquerque… Alb-…  2.01e7 BOOK    GERALD… White   91      Female  Albu… NM   
+    ## # … with 5 more variables: lat <dbl>, lon <dbl>, disposition <chr>,
+    ## #   n_obs <int>, n_obs_unsolved <int>, and abbreviated variable names
+    ## #   ¹​reported_date, ²​victim_last, ³​victim_first, ⁴​victim_race, ⁵​victim_age,
+    ## #   ⁶​victim_sex
 
 *Baltimore 1 - sample Proportion of Unsolved Homicides to All Homicides*
 
 ``` r
   baltimore_homicides = 
   homicide_city_state_data %>% 
+  group_by(city_state, n_obs, n_obs_unsolved) %>% 
+  summarize() %>% 
   filter(
     city_state == "Baltimore, MD"
   ) 
-
-
-  prop.test(baltimore_homicides %>% pull(n_obs_unsolved), baltimore_homicides %>% pull(n_obs)) %>% 
-  broom::tidy() %>% 
-  select(
-    estimate, conf.low, conf.high
-  )
 ```
 
-    ## # A tibble: 1 × 3
-    ##   estimate conf.low conf.high
-    ##      <dbl>    <dbl>     <dbl>
-    ## 1    0.646    0.628     0.663
+    ## `summarise()` has grouped output by 'city_state', 'n_obs'. You can override
+    ## using the `.groups` argument.
 
 ``` r
   prop.test(baltimore_homicides %>% pull(n_obs_unsolved), baltimore_homicides %>% pull(n_obs)) %>% 
   broom::tidy() %>% 
   select(
     estimate, conf.low, conf.high
-  )
+  ) %>% 
+    knitr::kable(2, caption = "Baltimore, MD 1 - Sample Proportion of Unsolved Homicides")
 ```
 
-    ## # A tibble: 1 × 3
-    ##   estimate conf.low conf.high
-    ##      <dbl>    <dbl>     <dbl>
-    ## 1    0.646    0.628     0.663
+|  estimate |  conf.low | conf.high |
+|----------:|----------:|----------:|
+| 0.6455607 | 0.6275625 | 0.6631599 |
+
+Baltimore, MD 1 - Sample Proportion of Unsolved Homicides
 
 We are 95% confident that the true proportion unsolved homicide rates in
 Baltimore is between 0.627 and 0.663.
 
-``` r
-prop_output = function(df) {
-  
- prop_test = 
-  prop.test(x = df %>% pull(n_obs_unsolved), n = df %>% pull(n_obs))   
+    ## `summarise()` has grouped output by 'city_state', 'n_obs_unsolved'. You can
+    ## override using the `.groups` argument.
 
-  
-return(prop_test)
+    ## # A tibble: 6 × 3
+    ## # Groups:   city_state, n_obs_unsolved [6]
+    ##   city_state      n_obs_unsolved n_obs
+    ##   <chr>                    <int> <int>
+    ## 1 Albuquerque, NM            146   378
+    ## 2 Atlanta, GA                373   973
+    ## 3 Baltimore, MD             1825  2827
+    ## 4 Baton Rouge, LA            196   424
+    ## 5 Birmingham, AL             347   800
+    ## 6 Boston, MA                 310   614
 
-}
-```
 
-``` r
-prop_output(homicide_city_state_data)
-```
+    _Created a function that runs prop.test given certain inputs
 
-    ## 
-    ##  50-sample test for equality of proportions without continuity
-    ##  correction
-    ## 
-    ## data:  df %>% pull(n_obs_unsolved) out of df %>% pull(n_obs)
-    ## X-squared = 2856.1, df = 49, p-value < 2.2e-16
-    ## alternative hypothesis: two.sided
-    ## sample estimates:
-    ##    prop 1    prop 2    prop 3    prop 4    prop 5    prop 6    prop 7    prop 8 
-    ## 0.3862434 0.3833505 0.6455607 0.4622642 0.4337500 0.5048860 0.6122841 0.2998544 
-    ##    prop 9   prop 10   prop 11   prop 12   prop 13   prop 14   prop 15   prop 16 
-    ## 0.7358627 0.4452450 0.5304428 0.4811742 0.5416667 0.5883287 0.3659420 0.4644809 
-    ##   prop 17   prop 18   prop 19   prop 20   prop 21   prop 22   prop 23   prop 24 
-    ## 0.3470226 0.5074779 0.4493192 0.5111301 0.4084034 0.4141926 0.4126984 0.4900310 
-    ##   prop 25   prop 26   prop 27   prop 28   prop 29   prop 30   prop 31   prop 32 
-    ## 0.4531250 0.3190225 0.6048387 0.3614350 0.5109290 0.3624511 0.6485356 0.3875598 
-    ##   prop 33   prop 34   prop 35   prop 36   prop 37   prop 38   prop 39   prop 40 
-    ## 0.5364308 0.4851190 0.4132029 0.4478103 0.5514223 0.5340729 0.2634033 0.3696809 
-    ##   prop 41   prop 42   prop 43   prop 44   prop 45   prop 46   prop 47   prop 48 
-    ## 0.4285714 0.6181818 0.3796095 0.5067873 0.4674797 0.5396541 0.5990991 0.4567308 
-    ##   prop 50   prop 51 
-    ## 0.3310463 0.4379182
+    ```r
+    prop_output = function(df) {
+      
+    results = df %>% 
+        group_by(city_state, n_obs_unsolved, n_obs)
+      
+     prop_test = 
+      prop.test(x = results %>% pull(n_obs_unsolved), n = results %>% pull(n_obs))   
+
+      
+    return(prop_test)
+
+    }
+
+*Applied in a tidy way*
+
+- NOTE: I had an error and could not resolve it.
 
 ``` r
-homicide_city_state_data %>%
-  prop_output() %>% 
-  broom::tidy()
-```
-
-    ## # A tibble: 1 × 55
-    ##   estimate1 estimate2 estimate3 estima…¹ estim…² estim…³ estim…⁴ estim…⁵ estim…⁶
-    ##       <dbl>     <dbl>     <dbl>    <dbl>   <dbl>   <dbl>   <dbl>   <dbl>   <dbl>
-    ## 1     0.386     0.383     0.646    0.462   0.434   0.505   0.612   0.300   0.736
-    ## # … with 46 more variables: estimate10 <dbl>, estimate11 <dbl>,
-    ## #   estimate12 <dbl>, estimate13 <dbl>, estimate14 <dbl>, estimate15 <dbl>,
-    ## #   estimate16 <dbl>, estimate17 <dbl>, estimate18 <dbl>, estimate19 <dbl>,
-    ## #   estimate20 <dbl>, estimate21 <dbl>, estimate22 <dbl>, estimate23 <dbl>,
-    ## #   estimate24 <dbl>, estimate25 <dbl>, estimate26 <dbl>, estimate27 <dbl>,
-    ## #   estimate28 <dbl>, estimate29 <dbl>, estimate30 <dbl>, estimate31 <dbl>,
-    ## #   estimate32 <dbl>, estimate33 <dbl>, estimate34 <dbl>, estimate35 <dbl>, …
-
-1.  Create a function that computes estimate, conf.low, conf.high
-
-%\>% version
-
-``` r
-prop_output = function(x, n) {
-  
-prop_df = 
-  prop.test(x, n) %>%  
-    broom::tidy() %>% 
-    select(
-      estimate, conf.low, conf.high
-    )
-  
-return(prop_df)
-
-}
-```
-
-Finally works
-
-``` r
-prop_output(5,10)
-```
-
-    ## # A tibble: 1 × 3
-    ##   estimate conf.low conf.high
-    ##      <dbl>    <dbl>     <dbl>
-    ## 1      0.5    0.237     0.763
-
-Try withouth broom::tidy
-
-``` r
-prop_nobroom = function(x, n) {
-  
-prop_df = 
-  prop.test(x, n)
-  
-return(prop_df)
-
-}
-```
-
-``` r
-prop_nobroom(5, 10)
-```
-
-    ## 
-    ##  1-sample proportions test without continuity correction
-    ## 
-    ## data:  x out of n, null probability 0.5
-    ## X-squared = 0, df = 1, p-value = 1
-    ## alternative hypothesis: true p is not equal to 0.5
-    ## 95 percent confidence interval:
-    ##  0.2365931 0.7634069
-    ## sample estimates:
-    ##   p 
-    ## 0.5
-
-Not in a tidy way
-
-``` r
-homicide_city_state_data
-
-
-map2(x = homicide_city_state_data %>% pull(n_obs_unsolved), y = homicide_city_state_data %>% pull(n_obs), ~prop_nobroom(x = .x, n = .y))
-```
-
-Error: Not enough data
-
-``` r
-homicide_city_state_data
-
-
-map2( .x = homicide_city_state_data %>% pull(n_obs_unsolved), .y = homicide_city_state_data %>% pull(n_obs), ~prop.test(x = .x, n = .y))
-```
-
-2.  map the data
-
-VERSION 1
-
-Using basic prop.test
-
-``` r
-homicide_city_state_data %>% 
+data_final = 
+  homicide_city_state_data %>% 
+  nest(data = n_obs:n_obs_unsolved) %>% 
   mutate(
-    proportion_test = map2(n_obs_unsolved, n_obs,prop.test)) 
+    results = map(data, prop_output),
+    results_tidy = map(results, broom::tidy)) %>% 
+  select(city_state, tidy_results) %>% 
+  unnest(results_tidy) %>% 
+  select(city_state, estimate, conf.low, conf.high)
 ```
 
-Using my custom code WITH BROOM
+*Subsequent steps I would have taken*
 
-``` r
-homicide_city_state_data %>% 
-  mutate(
-    prop = 
-      map2(.x = n_obs_unsolved, .y = n_obs, ~prop_output(x = .x, n = .y))
-  ) 
-```
-
-Using my native code WITH NO BROOM
-
-``` r
-homicide_city_state_data %>% 
-  mutate(
-    prop = 
-      map2(.x = n_obs_unsolved, .y = n_obs, ~prop_nobroom(x = .x, n = .y))
-  ) 
-```
-
-Using my custom code with no broom + nest data
-
-``` r
-sim_t_test = function(true_mean) {
-  sample = rnorm(30, mean = 0)
-  
-  test_results = t.test(sample) %>% 
-  broom::tidy()
-}
-
-expand_grid(
-  true_mean = 0:6, 
-  iter = 1:5
-)
-```
-
-    ## # A tibble: 35 × 2
-    ##    true_mean  iter
-    ##        <int> <int>
-    ##  1         0     1
-    ##  2         0     2
-    ##  3         0     3
-    ##  4         0     4
-    ##  5         0     5
-    ##  6         1     1
-    ##  7         1     2
-    ##  8         1     3
-    ##  9         1     4
-    ## 10         1     5
-    ## # … with 25 more rows
-
-Above, diff sample/diff sample mean but consistent true mean which is
-the input
-
-Once you have the plot, it’s all after you run the simulation group_by +
-summarize for the true mean & summarize how often the null was rejected
-
-group_by averages
-
-If all you see are results where p\< 0.5 –\> publication bias; + low
-power You end up seeing results which are different than true
-
-## Problem 2
+- I might have explored binding rows and doing everything one by one for
+  each city_state
+- I would have fct_releveled/reordered the city_state by the estimates
+  to organize them
+- I would have used ggplot + geom_error bar setting the ymin as the LL
+  and the ymax as the UL. I would have explored line vs scatter plot.
 
 ## Problem 3
 
-VERSION 1: looks up to date
+1.  First set the following design elements, Set μ=0. Generate 5000
+    datasets from the modelor each dataset, save μ^ and the p-value
+    arising from a test of H:μ=0 using α=0.05. Hint: to obtain the
+    estimate and p-value, use broom::tidy to clean the output of t.test.
 
 ``` r
 sim_mean_sd = function(mu) {
@@ -313,17 +159,8 @@ sim_mean_sd = function(mu) {
   
  }
 
-a = sim_mean_sd(0)
-a
-```
 
-    ## # A tibble: 1 × 8
-    ##   estimate statistic p.value parameter conf.low conf.high method         alter…¹
-    ##      <dbl>     <dbl>   <dbl>     <dbl>    <dbl>     <dbl> <chr>          <chr>  
-    ## 1    0.412     0.489   0.629        29    -1.31      2.14 One Sample t-… two.si…
-    ## # … with abbreviated variable name ¹​alternative
 
-``` r
 #mapping into my input called mean which is named in the dataset. In the function, i have a variable called mu. I am telling the function that I have a variable that is equal to the object mean. 
 
 
@@ -344,16 +181,18 @@ sim_results_zero_df
     ## # A tibble: 10 × 4
     ##     iter  mean p.value estimate
     ##    <int> <dbl>   <dbl>    <dbl>
-    ##  1     1     0  0.368     0.664
-    ##  2     2     0  0.534     0.551
-    ##  3     3     0  0.487     0.567
-    ##  4     4     0  0.0599   -1.65 
-    ##  5     5     0  0.229     1.19 
-    ##  6     6     0  0.738     0.334
-    ##  7     7     0  0.209    -1.19 
-    ##  8     8     0  0.887     0.122
-    ##  9     9     0  0.472     0.684
-    ## 10    10     0  0.218     1.09
+    ##  1     1     0  0.629     0.412
+    ##  2     2     0  0.368     0.664
+    ##  3     3     0  0.534     0.551
+    ##  4     4     0  0.487     0.567
+    ##  5     5     0  0.0599   -1.65 
+    ##  6     6     0  0.229     1.19 
+    ##  7     7     0  0.738     0.334
+    ##  8     8     0  0.209    -1.19 
+    ##  9     9     0  0.887     0.122
+    ## 10    10     0  0.472     0.684
+
+Repeat the above for μ={1,2,3,4,5,6},
 
 ``` r
 sim_results_df = 
@@ -370,18 +209,18 @@ sim_results_df
 ```
 
     ## # A tibble: 60 × 4
-    ##     iter  mean   p.value estimate
-    ##    <int> <dbl>     <dbl>    <dbl>
-    ##  1     1     1 0.300        1.00 
-    ##  2     1     2 0.250        1.09 
-    ##  3     1     3 0.0000226    4.17 
-    ##  4     1     4 0.0262       2.50 
-    ##  5     1     5 0.0000107    5.10 
-    ##  6     1     6 0.0000250    6.19 
-    ##  7     2     1 0.485        0.597
-    ##  8     2     2 0.118        1.34 
-    ##  9     2     3 0.00169      3.39 
-    ## 10     2     4 0.000194     4.41 
+    ##     iter  mean     p.value estimate
+    ##    <int> <dbl>       <dbl>    <dbl>
+    ##  1     1     1 0.0221          2.09
+    ##  2     1     2 0.0436          2.00
+    ##  3     1     3 0.0319          2.09
+    ##  4     1     4 0.000000803     5.17
+    ##  5     1     5 0.00269         3.50
+    ##  6     1     6 0.000000613     6.10
+    ##  7     2     1 0.343           1.19
+    ##  8     2     2 0.0684          1.60
+    ##  9     2     3 0.00872         2.34
+    ## 10     2     4 0.000107        4.39
     ## # … with 50 more rows
 
 `sim_results_df` is the dataset I will work on.
@@ -431,12 +270,18 @@ sim_decision
     ## # Groups:   mean [6]
     ##    mean compare_to_alpha n_rej  prop
     ##   <dbl>            <dbl> <int> <dbl>
-    ## 1     1                1     1   0.1
-    ## 2     2                1     5   0.5
-    ## 3     3                1     9   0.9
+    ## 1     1                1     3   0.3
+    ## 2     2                1     3   0.3
+    ## 3     3                1    10   1  
     ## 4     4                1    10   1  
     ## 5     5                1    10   1  
     ## 6     6                1    10   1
+
+Make a plot showing the proportion of times the null was rejected (the
+power of the test) on the y axis and the true value of μ on the x axis.
+Describe the association between effect size and power.
+
+ANS: The larger the effect size the larger the power.
 
 ``` r
 sim_decision %>% 
@@ -449,7 +294,7 @@ sim_decision %>%
     ) 
 ```
 
-<img src="hw5_files/figure-gfm/unnamed-chunk-25-1.png" width="90%" />
+<img src="hw5_files/figure-gfm/unnamed-chunk-14-1.png" width="90%" />
 
 Make a plot showing the average estimate of μ^ on the y axis and the
 true value of μ on the x axis. Make a second plot (or overlay on the
@@ -457,6 +302,9 @@ first) the average estimate of μ^ only in samples for which the null was
 rejected on the y axis and the true value of μ on the x axis. Is the
 sample average of μ^ across tests for which the null is rejected
 approximately equal to the true value of μ? Why or why not
+
+No, the sample average of μ^ across tests for which the null is rejected
+is NOT approximately equal to the true value of μ.
 
 ``` r
  plot_compare_means = 
@@ -490,4 +338,4 @@ sim_rej =
 plot_compare_means / sim_rej
 ```
 
-<img src="hw5_files/figure-gfm/unnamed-chunk-26-1.png" width="90%" />
+<img src="hw5_files/figure-gfm/unnamed-chunk-15-1.png" width="90%" />
