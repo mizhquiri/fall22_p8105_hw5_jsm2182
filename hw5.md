@@ -450,3 +450,44 @@ sim_decision %>%
 ```
 
 <img src="hw5_files/figure-gfm/unnamed-chunk-25-1.png" width="90%" />
+
+Make a plot showing the average estimate of μ^ on the y axis and the
+true value of μ on the x axis. Make a second plot (or overlay on the
+first) the average estimate of μ^ only in samples for which the null was
+rejected on the y axis and the true value of μ on the x axis. Is the
+sample average of μ^ across tests for which the null is rejected
+approximately equal to the true value of μ? Why or why not
+
+``` r
+ plot_compare_means = 
+  sim_results_df %>%
+  ggplot(aes(x = mean, y = estimate)) + geom_point() + 
+  labs(
+    x = "True Mean",
+    y = "Sample Means",
+    title = "Comparing Mu vs Mu-hat"
+    ) 
+
+
+sim_rej = 
+  sim_results_df %>%
+  mutate(
+    compare_to_alpha = ifelse(p.value < 0.05, 1, 0)
+  ) %>% 
+  group_by(mean, compare_to_alpha, estimate) %>% 
+  filter(
+    compare_to_alpha == 1
+  ) %>% 
+  ggplot(
+    aes(x = mean, y = estimate)) + geom_point() + 
+  labs(
+    x = "True Mean",
+    y = "Sample Means",
+    title = "Comparing Mu vs Mu-hat for which p< 0.05"
+    ) 
+  
+
+plot_compare_means / sim_rej
+```
+
+<img src="hw5_files/figure-gfm/unnamed-chunk-26-1.png" width="90%" />
