@@ -187,7 +187,7 @@ sim_mean_sd = function(mu) {
 
 sim_results_zero_df = 
   expand_grid(
-    iter = 1:10, 
+    iter = 1:5000, 
     mean = 0) %>% 
   mutate(
     estimate_df = 
@@ -195,7 +195,7 @@ sim_results_zero_df =
   ) %>% unnest(estimate_df) %>% 
     select(iter, mean, p.value, estimate)
 
-sim_results_zero_df
+head(sim_results_zero_df)
 
 
 
@@ -206,7 +206,7 @@ Repeat the above for μ={1,2,3,4,5,6},
 ```{r}
 sim_results_df = 
   expand_grid(
-    iter = 1:10,
+    iter = 1:5000,
     mean = c(1,2,3,4,5,6)) %>% 
   mutate(
     estimate_df = 
@@ -214,7 +214,7 @@ sim_results_df =
   ) %>% unnest(estimate_df) %>% 
   select(iter, mean, p.value, estimate)
 
-sim_results_df
+head(sim_results_df)
 
 ```
 
@@ -249,12 +249,15 @@ sim_decision =
     n_rej = n()
   ) %>% 
   mutate(
-    prop = n_rej/10
+    prop = n_rej/5000
   )
   
 
 sim_decision
 ```
+
+* Note more elegant way may have been to use the denominator as the minimum of the iteration value or add a new column called 5000 for each observation.
+
 
 Make a plot showing the proportion of times the null was rejected (the power of the test) on the y axis and the true value of μ on the x axis. Describe the association between effect size and power.
 

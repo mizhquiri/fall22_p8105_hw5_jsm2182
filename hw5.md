@@ -167,7 +167,7 @@ sim_mean_sd = function(mu) {
 
 sim_results_zero_df = 
   expand_grid(
-    iter = 1:10, 
+    iter = 1:5000, 
     mean = 0) %>% 
   mutate(
     estimate_df = 
@@ -175,29 +175,25 @@ sim_results_zero_df =
   ) %>% unnest(estimate_df) %>% 
     select(iter, mean, p.value, estimate)
 
-sim_results_zero_df
+head(sim_results_zero_df)
 ```
 
-    ## # A tibble: 10 × 4
-    ##     iter  mean p.value estimate
-    ##    <int> <dbl>   <dbl>    <dbl>
-    ##  1     1     0  0.629     0.412
-    ##  2     2     0  0.368     0.664
-    ##  3     3     0  0.534     0.551
-    ##  4     4     0  0.487     0.567
-    ##  5     5     0  0.0599   -1.65 
-    ##  6     6     0  0.229     1.19 
-    ##  7     7     0  0.738     0.334
-    ##  8     8     0  0.209    -1.19 
-    ##  9     9     0  0.887     0.122
-    ## 10    10     0  0.472     0.684
+    ## # A tibble: 6 × 4
+    ##    iter  mean p.value estimate
+    ##   <int> <dbl>   <dbl>    <dbl>
+    ## 1     1     0  0.629     0.412
+    ## 2     2     0  0.368     0.664
+    ## 3     3     0  0.534     0.551
+    ## 4     4     0  0.487     0.567
+    ## 5     5     0  0.0599   -1.65 
+    ## 6     6     0  0.229     1.19
 
 Repeat the above for μ={1,2,3,4,5,6},
 
 ``` r
 sim_results_df = 
   expand_grid(
-    iter = 1:10,
+    iter = 1:5000,
     mean = c(1,2,3,4,5,6)) %>% 
   mutate(
     estimate_df = 
@@ -205,23 +201,18 @@ sim_results_df =
   ) %>% unnest(estimate_df) %>% 
   select(iter, mean, p.value, estimate)
 
-sim_results_df
+head(sim_results_df)
 ```
 
-    ## # A tibble: 60 × 4
-    ##     iter  mean     p.value estimate
-    ##    <int> <dbl>       <dbl>    <dbl>
-    ##  1     1     1 0.0221          2.09
-    ##  2     1     2 0.0436          2.00
-    ##  3     1     3 0.0319          2.09
-    ##  4     1     4 0.000000803     5.17
-    ##  5     1     5 0.00269         3.50
-    ##  6     1     6 0.000000613     6.10
-    ##  7     2     1 0.343           1.19
-    ##  8     2     2 0.0684          1.60
-    ##  9     2     3 0.00872         2.34
-    ## 10     2     4 0.000107        4.39
-    ## # … with 50 more rows
+    ## # A tibble: 6 × 4
+    ##    iter  mean       p.value estimate
+    ##   <int> <dbl>         <dbl>    <dbl>
+    ## 1     1     1 0.0865            1.52
+    ## 2     1     2 0.000737          3.11
+    ## 3     1     3 0.0000258         4.01
+    ## 4     1     4 0.000492          3.17
+    ## 5     1     5 0.000211          4.11
+    ## 6     1     6 0.00000000847     6.56
 
 `sim_results_df` is the dataset I will work on.
 
@@ -255,7 +246,7 @@ sim_decision =
     n_rej = n()
   ) %>% 
   mutate(
-    prop = n_rej/10
+    prop = n_rej/5000
   )
 ```
 
@@ -270,12 +261,16 @@ sim_decision
     ## # Groups:   mean [6]
     ##    mean compare_to_alpha n_rej  prop
     ##   <dbl>            <dbl> <int> <dbl>
-    ## 1     1                1     3   0.3
-    ## 2     2                1     3   0.3
-    ## 3     3                1    10   1  
-    ## 4     4                1    10   1  
-    ## 5     5                1    10   1  
-    ## 6     6                1    10   1
+    ## 1     1                1   885 0.177
+    ## 2     2                1  2761 0.552
+    ## 3     3                1  4438 0.888
+    ## 4     4                1  4947 0.989
+    ## 5     5                1  4998 1.00 
+    ## 6     6                1  5000 1
+
+- Note more elegant way may have been to use the denominator as the
+  minimum of the iteration value or add a new column called 5000 for
+  each observation.
 
 Make a plot showing the proportion of times the null was rejected (the
 power of the test) on the y axis and the true value of μ on the x axis.
