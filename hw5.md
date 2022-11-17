@@ -298,6 +298,8 @@ group_by averages
 If all you see are results where p\< 0.5 –\> publication bias; + low
 power You end up seeing results which are different than true
 
+## Problem 2
+
 ## Problem 3
 
 VERSION 1: looks up to date
@@ -322,6 +324,38 @@ a
     ## # … with abbreviated variable name ¹​alternative
 
 ``` r
+#mapping into my input called mean which is named in the dataset. In the function, i have a variable called mu. I am telling the function that I have a variable that is equal to the object mean. 
+
+
+
+sim_results_zero_df = 
+  expand_grid(
+    iter = 1:10, 
+    mean = 0) %>% 
+  mutate(
+    estimate_df = 
+      map(mean, sim_mean_sd)
+  ) %>% unnest(estimate_df) %>% 
+    select(iter, mean, p.value, estimate)
+
+sim_results_zero_df
+```
+
+    ## # A tibble: 10 × 4
+    ##     iter  mean p.value estimate
+    ##    <int> <dbl>   <dbl>    <dbl>
+    ##  1     1     0  0.368     0.664
+    ##  2     2     0  0.534     0.551
+    ##  3     3     0  0.487     0.567
+    ##  4     4     0  0.0599   -1.65 
+    ##  5     5     0  0.229     1.19 
+    ##  6     6     0  0.738     0.334
+    ##  7     7     0  0.209    -1.19 
+    ##  8     8     0  0.887     0.122
+    ##  9     9     0  0.472     0.684
+    ## 10    10     0  0.218     1.09
+
+``` r
 sim_results_df = 
   expand_grid(
     iter = 1:10,
@@ -330,22 +364,89 @@ sim_results_df =
     estimate_df = 
       map(mean, sim_mean_sd)
   ) %>% unnest(estimate_df) %>% 
-  select(p.value, estimate)
+  select(iter, mean, p.value, estimate)
 
 sim_results_df
 ```
 
-    ## # A tibble: 60 × 2
-    ##        p.value estimate
-    ##          <dbl>    <dbl>
-    ##  1 0.0294         1.66 
-    ##  2 0.00687        2.55 
-    ##  3 0.000124       3.57 
-    ##  4 0.00924        2.35 
-    ##  5 0.000000508    6.19 
-    ##  6 0.000000540    6.33 
-    ##  7 0.839         -0.190
-    ##  8 0.0184         2.12 
-    ##  9 0.000493       3.68 
-    ## 10 0.00000216     5.09 
+    ## # A tibble: 60 × 4
+    ##     iter  mean   p.value estimate
+    ##    <int> <dbl>     <dbl>    <dbl>
+    ##  1     1     1 0.300        1.00 
+    ##  2     1     2 0.250        1.09 
+    ##  3     1     3 0.0000226    4.17 
+    ##  4     1     4 0.0262       2.50 
+    ##  5     1     5 0.0000107    5.10 
+    ##  6     1     6 0.0000250    6.19 
+    ##  7     2     1 0.485        0.597
+    ##  8     2     2 0.118        1.34 
+    ##  9     2     3 0.00169      3.39 
+    ## 10     2     4 0.000194     4.41 
     ## # … with 50 more rows
+
+`sim_results_df` is the dataset I will work on.
+
+20. test
+
+<!-- -->
+
+1.  Hypothesis statements
+
+- H0: mean = 0 is true
+- H1: mean = 0 is not true.
+
+2.  define your alpha: alpha = 0.05
+
+3.  calculate your test statistic and compare
+
+4.  Compare your p-value for each row If p\< alpha, then reject H0 If p
+    !\< alpha, then fail to reject H0
+
+``` r
+sim_decision = 
+  sim_results_df %>%
+  mutate(
+    compare_to_alpha = ifelse(p.value < 0.05, 1, 0)
+  ) %>% 
+  group_by(mean, compare_to_alpha) %>% 
+  filter(
+    compare_to_alpha == 1
+  ) %>% 
+  summarize(
+    n_rej = n()
+  ) %>% 
+  mutate(
+    prop = n_rej/10
+  )
+```
+
+    ## `summarise()` has grouped output by 'mean'. You can override using the
+    ## `.groups` argument.
+
+``` r
+sim_decision
+```
+
+    ## # A tibble: 6 × 4
+    ## # Groups:   mean [6]
+    ##    mean compare_to_alpha n_rej  prop
+    ##   <dbl>            <dbl> <int> <dbl>
+    ## 1     1                1     1   0.1
+    ## 2     2                1     5   0.5
+    ## 3     3                1     9   0.9
+    ## 4     4                1    10   1  
+    ## 5     5                1    10   1  
+    ## 6     6                1    10   1
+
+``` r
+sim_decision %>% 
+  ggplot(aes(x = mean, y = prop)) +
+  geom_point() + 
+  labs(
+    x = "True Mean",
+    y = "Likelihood of Rejecting H0",
+    title = "Power"
+    ) 
+```
+
+<img src="hw5_files/figure-gfm/unnamed-chunk-25-1.png" width="90%" />

@@ -5,6 +5,7 @@ output: github_document
 
 ```{r, include = FALSE, messsage=FALSE, warning=FALSE}
 library(tidyverse)
+library(ggridges)
 
 
 knitr::opts_chunk$set(
@@ -264,8 +265,13 @@ group_by averages
 
 If all you see are results where p< 0.5 --> publication bias; + low power 
  You end up seeing results which are different than true 
+
+## Problem 2
  
- 
+```{r}
+
+```
+
 ## Problem 3
 
 
@@ -283,6 +289,23 @@ sim_mean_sd = function(mu) {
 a = sim_mean_sd(0)
 a
 
+#mapping into my input called mean which is named in the dataset. In the function, i have a variable called mu. I am telling the function that I have a variable that is equal to the object mean. 
+
+
+
+sim_results_zero_df = 
+  expand_grid(
+    iter = 1:10, 
+    mean = 0) %>% 
+  mutate(
+    estimate_df = 
+      map(mean, sim_mean_sd)
+  ) %>% unnest(estimate_df) %>% 
+    select(iter, mean, p.value, estimate)
+
+sim_results_zero_df
+
+
 
 sim_results_df = 
   expand_grid(
@@ -292,7 +315,7 @@ sim_results_df =
     estimate_df = 
       map(mean, sim_mean_sd)
   ) %>% unnest(estimate_df) %>% 
-  select(p.value, estimate)
+  select(iter, mean, p.value, estimate)
 
 sim_results_df
 
@@ -300,7 +323,56 @@ sim_results_df
 ```
 
 
+`sim_results_df` is the dataset I will work on. 
 
- 
- 
- 
+t. test 
+
+1. Hypothesis statements
+- H0: mean = 0 is true
+- H1: mean = 0 is not true. 
+
+2. define your alpha: alpha = 0.05
+
+3. calculate your test statistic and compare
+
+4. Compare your p-value for each row
+ If p< alpha, then reject H0
+ If p !< alpha, then fail to reject H0 
+
+```{r}
+
+sim_decision = 
+  sim_results_df %>%
+  mutate(
+    compare_to_alpha = ifelse(p.value < 0.05, 1, 0)
+  ) %>% 
+  group_by(mean, compare_to_alpha) %>% 
+  filter(
+    compare_to_alpha == 1
+  ) %>% 
+  summarize(
+    n_rej = n()
+  ) %>% 
+  mutate(
+    prop = n_rej/10
+  )
+  
+
+sim_decision
+```
+```{r}
+sim_decision %>% 
+  ggplot(aes(x = mean, y = prop)) +
+  geom_point() + 
+  labs(
+    x = "True Mean",
+    y = "Likelihood of Rejecting H0",
+    title = "Power"
+    ) 
+```
+
+
+```{r}
+
+```
+
