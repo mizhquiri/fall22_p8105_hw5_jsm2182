@@ -41,7 +41,7 @@ set.seed(1) #sets a seed for reproducibility
 ```{r, echo = FALSE, warning = FALSE, message = FALSE}
 homicide_rawdf = read_csv("./data/homicide-data.csv")
 ```
-_Description of raw data_ This dataset overviews demographic and geographic data for homicide victims across various cities in the United States. It has `n row(homicide_rawdf)` rows and `ncol(homicide_rawdf)` columns.
+_Description of raw data_ This dataset overviews demographic and geographic data for homicide victims across various cities in the United States. It has `n rows(homicide_rawdf)` rows and `ncols(homicide_rawdf)` columns.
 
 Steps: 
 
@@ -147,20 +147,44 @@ return(prop_test)
 _Applied in a tidy way_
 
 
-```{r}
-homicide_city_state_data %>% 
+```{r, message = FALSE, warning = FALSE}
+data_final = 
+  homicide_city_state_data %>% 
   mutate(
     proportion_test = map2(n_obs_unsolved, n_obs, prop_function)
-    ) %>% unnest()
+    ) %>% 
+  unnest() %>% 
+  mutate(
+    city_state = as.factor(city_state),
+    city_state = fct_reorder(city_state, estimate)
+  )
     
 ```
 
 
-_Subsequent steps I would have taken_
+_Plot_
 
-- I might have explored binding rows and doing everything one by one for each city_state
-- I would have fct_releveled/reordered the city_state by the estimates to organize them
-- I would have used ggplot + geom_error bar setting the ymin as the LL and the ymax as the UL. I would have explored line vs scatter plot. 
+
+```{r}
+
+
+data_final %>% 
+  ggplot(aes(x = city_state, y = estimate)) + 
+  geom_boxplot() + 
+  geom_errorbar(
+    aes(ymin = conf.low, ymax = conf.high), width = .2, 
+    position = position_dodge(.9)
+  ) + 
+  theme(axis.text.x = element_text(angle = 90, vjust = 0.5, hjust = 1)) + 
+  theme(legend.position = "right") + 
+  labs(
+    x = "Cities",
+    y = "Proportions of Unsolved to All Homicides",
+    title = "Estimates and CIs for each city"
+    ) 
+  
+  
+```
 
 
 
