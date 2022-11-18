@@ -31,28 +31,22 @@ unsolved_homicides =
 3.  Added these \#s to the dataset
 
 ``` r
-homicide_city_state_data_pre = 
-  left_join(all_homicides, unsolved_homicides, by = "city_state")
-
 homicide_city_state_data = 
-  left_join(homicide_cleandf, homicide_city_state_data_pre, by = "city_state")
+  left_join(all_homicides, unsolved_homicides, by = "city_state") %>% 
+  na.omit()
 
 head(homicide_city_state_data)
 ```
 
-    ## # A tibble: 6 × 15
-    ##   city_state   uid   repor…¹ victi…² victi…³ victi…⁴ victi…⁵ victi…⁶ city  state
-    ##   <chr>        <chr>   <dbl> <chr>   <chr>   <chr>   <chr>   <chr>   <chr> <chr>
-    ## 1 Albuquerque… Alb-…  2.01e7 GARCIA  JUAN    Hispan… 78      Male    Albu… NM   
-    ## 2 Albuquerque… Alb-…  2.01e7 MONTOYA CAMERON Hispan… 17      Male    Albu… NM   
-    ## 3 Albuquerque… Alb-…  2.01e7 SATTER… VIVIANA White   15      Female  Albu… NM   
-    ## 4 Albuquerque… Alb-…  2.01e7 MENDIO… CARLOS  Hispan… 32      Male    Albu… NM   
-    ## 5 Albuquerque… Alb-…  2.01e7 MULA    VIVIAN  White   72      Female  Albu… NM   
-    ## 6 Albuquerque… Alb-…  2.01e7 BOOK    GERALD… White   91      Female  Albu… NM   
-    ## # … with 5 more variables: lat <dbl>, lon <dbl>, disposition <chr>,
-    ## #   n_obs <int>, n_obs_unsolved <int>, and abbreviated variable names
-    ## #   ¹​reported_date, ²​victim_last, ³​victim_first, ⁴​victim_race, ⁵​victim_age,
-    ## #   ⁶​victim_sex
+    ## # A tibble: 6 × 3
+    ##   city_state      n_obs n_obs_unsolved
+    ##   <chr>           <int>          <int>
+    ## 1 Albuquerque, NM   378            146
+    ## 2 Atlanta, GA       973            373
+    ## 3 Baltimore, MD    2827           1825
+    ## 4 Baton Rouge, LA   424            196
+    ## 5 Birmingham, AL    800            347
+    ## 6 Boston, MA        614            310
 
 *Baltimore 1 - sample Proportion of Unsolved Homicides to All Homicides*
 
@@ -84,8 +78,8 @@ head(homicide_city_state_data)
 
 Baltimore, MD 1 - Sample Proportion of Unsolved Homicides
 
-We are 95% confident that the true proportion unsolved homicide rates in
-Baltimore is between 0.627 and 0.663.
+We are 95% confident that the true proportion of unsolved homicide rates
+in Baltimore is between 0.627 and 0.663.
 
     ## `summarise()` has grouped output by 'city_state', 'n_obs_unsolved'. You can
     ## override using the `.groups` argument.
@@ -101,38 +95,46 @@ Baltimore is between 0.627 and 0.663.
     ## 5 Birmingham, AL             347   800
     ## 6 Boston, MA                 310   614
 
+\_Created a function that runs prop.test given certain inputs
 
-    _Created a function that runs prop.test given certain inputs
+``` r
+prop_function = function(x, n) {
+  
+  
+ prop_test = 
+  prop.test(x, n) %>% 
+  broom::tidy() %>% 
+  select(estimate, conf.low, conf.high)
 
-    ```r
-    prop_output = function(df) {
-      
-    results = df %>% 
-        group_by(city_state, n_obs_unsolved, n_obs)
-      
-     prop_test = 
-      prop.test(x = results %>% pull(n_obs_unsolved), n = results %>% pull(n_obs))   
+  
+return(prop_test)
 
-      
-    return(prop_test)
-
-    }
+}
+```
 
 *Applied in a tidy way*
 
-- NOTE: I had an error and could not resolve it.
-
 ``` r
-data_final = 
-  homicide_city_state_data %>% 
-  nest(data = n_obs:n_obs_unsolved) %>% 
+homicide_city_state_data %>% 
   mutate(
-    results = map(data, prop_output),
-    results_tidy = map(results, broom::tidy)) %>% 
-  select(city_state, tidy_results) %>% 
-  unnest(results_tidy) %>% 
-  select(city_state, estimate, conf.low, conf.high)
+    proportion_test = map2(n_obs_unsolved, n_obs, prop_function)
+    ) %>% unnest()
 ```
+
+    ## # A tibble: 50 × 6
+    ##    city_state      n_obs n_obs_unsolved estimate conf.low conf.high
+    ##    <chr>           <int>          <int>    <dbl>    <dbl>     <dbl>
+    ##  1 Albuquerque, NM   378            146    0.386    0.337     0.438
+    ##  2 Atlanta, GA       973            373    0.383    0.353     0.415
+    ##  3 Baltimore, MD    2827           1825    0.646    0.628     0.663
+    ##  4 Baton Rouge, LA   424            196    0.462    0.414     0.511
+    ##  5 Birmingham, AL    800            347    0.434    0.399     0.469
+    ##  6 Boston, MA        614            310    0.505    0.465     0.545
+    ##  7 Buffalo, NY       521            319    0.612    0.569     0.654
+    ##  8 Charlotte, NC     687            206    0.300    0.266     0.336
+    ##  9 Chicago, IL      5535           4073    0.736    0.724     0.747
+    ## 10 Cincinnati, OH    694            309    0.445    0.408     0.483
+    ## # … with 40 more rows
 
 *Subsequent steps I would have taken*
 
@@ -299,7 +301,8 @@ sample average of μ^ across tests for which the null is rejected
 approximately equal to the true value of μ? Why or why not
 
 No, the sample average of μ^ across tests for which the null is rejected
-is NOT approximately equal to the true value of μ.
+is NOT approximately equal to the true value of μ. This makes sense as
+there is sufficient evidence to reject the null hypothesis.
 
 ``` r
  plot_compare_means = 

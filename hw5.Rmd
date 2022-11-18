@@ -77,11 +77,9 @@ unsolved_homicides =
 
 3. Added these #s to the dataset 
 ```{r}
-homicide_city_state_data_pre = 
-  left_join(all_homicides, unsolved_homicides, by = "city_state")
-
 homicide_city_state_data = 
-  left_join(homicide_cleandf, homicide_city_state_data_pre, by = "city_state")
+  left_join(all_homicides, unsolved_homicides, by = "city_state") %>% 
+  na.omit()
 
 head(homicide_city_state_data)
 
@@ -111,7 +109,7 @@ _Baltimore 1 - sample Proportion of Unsolved Homicides to All Homicides_
 ```
 
 
-We are 95% confident that the true proportion unsolved homicide rates in Baltimore is between 0.627 and 0.663.
+We are 95% confident that the true proportion of unsolved homicide rates in Baltimore is between 0.627 and 0.663.
 
 
 ```{r, echo = FALSE}
@@ -122,38 +120,39 @@ We are 95% confident that the true proportion unsolved homicide rates in Baltimo
 
 head(results)
 ```
-```
+
 
 _Created a function that runs prop.test given certain inputs
+
 ```{r}
-prop_output = function(df) {
+
+prop_function = function(x, n) {
   
-results = df %>% 
-    group_by(city_state, n_obs_unsolved, n_obs)
   
  prop_test = 
-  prop.test(x = results %>% pull(n_obs_unsolved), n = results %>% pull(n_obs))   
+  prop.test(x, n) %>% 
+  broom::tidy() %>% 
+  select(estimate, conf.low, conf.high)
 
   
 return(prop_test)
 
 }
+
+
 ```
+
+
 
 _Applied in a tidy way_
 
-- NOTE: I had an error and could not resolve it. 
 
-```{r, eval = FALSE}
-data_final = 
-  homicide_city_state_data %>% 
-  nest(data = n_obs:n_obs_unsolved) %>% 
+```{r}
+homicide_city_state_data %>% 
   mutate(
-    results = map(data, prop_output),
-    results_tidy = map(results, broom::tidy)) %>% 
-  select(city_state, tidy_results) %>% 
-  unnest(results_tidy) %>% 
-  select(city_state, estimate, conf.low, conf.high)
+    proportion_test = map2(n_obs_unsolved, n_obs, prop_function)
+    ) %>% unnest()
+    
 ```
 
 
@@ -277,7 +276,7 @@ sim_decision %>%
 Make a plot showing the average estimate of μ^ on the y axis and the true value of μ on the x axis. Make a second plot (or overlay on the first) the average estimate of μ^ only in samples for which the null was rejected on the y axis and the true value of μ on the x axis. Is the sample average of μ^ across tests for which the null is rejected approximately equal to the true value of μ? Why or why not
 
 
-No, the sample average of μ^ across tests for which the null is rejected is NOT approximately equal to the true value of μ. 
+No, the sample average of μ^ across tests for which the null is rejected is NOT approximately equal to the true value of μ. This makes sense as there is sufficient evidence to reject the null hypothesis. 
 
 ```{r}
  plot_compare_means = 
